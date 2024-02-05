@@ -1,20 +1,18 @@
 from flask import Flask, jsonify
 import threading
-import os
-from network_traffic_analysis import NetworkTrafficAnalysis  # Assuming your script is named network_traffic_analysis.py
-
-path='../Model/decision_tree_model.joblib'
+from network_traffic_analysis import NetworkTrafficAnalysis  # Make sure this is the correct import path
 
 app = Flask(__name__)
+
+# Create a shared instance of NetworkTrafficAnalysis
+model_path = 'Model/decision_tree_model.joblib'  # Adjust the path if necessary
+analysis_system = NetworkTrafficAnalysis(model_path)
 capture_thread = None
 
 @app.route('/start_capture', methods=['GET'])
 def start_capture():
     global capture_thread
     if capture_thread is None or not capture_thread.is_alive():
-        model_path = path
-        analysis_system = NetworkTrafficAnalysis(model_path)
-        
         capture_thread = threading.Thread(target=analysis_system.start_capture, daemon=True)
         capture_thread.start()
         return jsonify({"status": "Capture started"}), 200
@@ -25,12 +23,7 @@ def start_capture():
 def stop_capture():
     global capture_thread
     if capture_thread is not None and capture_thread.is_alive():
-        model_path = path
-        analysis_system = NetworkTrafficAnalysis(model_path)  # Define the analysis_system variable
-        
-        # You need to implement a method to stop the capture safely in your NetworkTrafficAnalysis class
-        # This could be setting a flag that is checked by the process_packet method
-        analysis_system.stop_capture()
+        analysis_system.stop_capture()  # You need to implement this method
         capture_thread.join()
         capture_thread = None
         return jsonify({"status": "Capture stopped"}), 200
@@ -38,4 +31,5 @@ def stop_capture():
         return jsonify({"status": "No capture is running"}), 200
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True)
+

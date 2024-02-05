@@ -66,16 +66,16 @@ class NetworkTrafficAnalysis:
                   f"dst_host_same_srv_rate={stats['dst_host_same_srv_rate']}")
 
     def start_capture(self):
-        print("Starting packet capture. Press Ctrl+C to stop.")
-        sniff(prn=self.process_packet, store=False)
+        self.stop_sniff = False  # Add a stop condition attribute
+        sniff(prn=self.process_packet, store=False, stop_filter=self.should_stop_sniff)
+    def should_stop_sniff(self, packet):
+        return self.stop_sniff  # This will stop sniffing when the flag is True
+    def stop_capture(self):
+        self.stop_sniff = True  # Set the flag to True to stop sniffing
 
-if __name__ == "__main__":
-    model_path = '../Model/decision_tree_model.joblib'
-    analysis_system = NetworkTrafficAnalysis(model_path)
-    analysis_system.start_capture()
-#  why is the code not working?
-# The code is not working because the NetworkTrafficAnalysis class is trying to use the ConnectionTracker class, which is not defined.
-# The ConnectionTracker class is used to keep track of the network connections and update their statistics, which are then used as features for the machine learning model.
-    
-# To fix the code, you need to define the ConnectionTracker class and its methods. Here's an example of how you can define the ConnectionTracker class:
-    
+
+# if __name__ == "__main__":
+#     model_path = 'Model/decision_tree_model.joblib'
+#     analysis_system = NetworkTrafficAnalysis(model_path)
+#     analysis_system.start_capture()
+# End of snippet
