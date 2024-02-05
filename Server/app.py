@@ -1,6 +1,6 @@
 from flask import Flask, jsonify
 import threading
-from network_traffic_analysis import NetworkTrafficAnalysis  # Make sure this is the correct import path
+from network_traffic_analysis import NetworkTrafficAnalysis # Make sure this is the correct import path
 
 app = Flask(__name__)
 
@@ -31,5 +31,6 @@ def stop_capture():
         return jsonify({"status": "No capture is running"}), 200
 
 if __name__ == '__main__':
+
     app.run(debug=True)
 
