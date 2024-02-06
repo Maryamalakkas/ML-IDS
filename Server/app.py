@@ -1,6 +1,6 @@
 from flask import Flask, jsonify
 import threading
-from network_traffic_analysis import NetworkTrafficAnalysis # Make sure this is the correct import path
+from Model.network_traffic_analysis import NetworkTrafficAnalysis # Make sure this is the correct import path
 
 app = Flask(__name__)
 
