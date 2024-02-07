@@ -11,7 +11,10 @@ import tkinter as tk
 from tkinter import ttk
 from threading import Thread
 import queue
+import logging
 
+# Initialize logging
+logging.basicConfig(level=logging.DEBUG)
 model_path = 'Project/multiclass_decision_tree_model.joblib'
 attack_types = {
         'normal': 'Normal',
@@ -62,66 +65,59 @@ label_mapping = {
         21: 'warezclient',
         22: 'warezmaster'
     }
-analysis_system = NetworkTrafficAnalysis(model_path, attack_types,label_mapping)
 
 
+class NetworkTrafficApp(tk.Tk):
+     def __init__(self):
+        super().__init__()
+        self.title("Network Traffic Analysis")
+        self.geometry("1024x768")
+        self.capture_thread = None
 
-def start_capture():
-    # Start packet capture in a new thread to keep the GUI responsive
-    capture_thread = Thread(target=analysis_system.start_capture)
-    capture_thread.daemon = True
-    capture_thread.start()
+        self.start_button = tk.Button(self, text="Start Capture", command=self.start_capture)
+        self.start_button.grid(row=0, column=0, padx=10, pady=10)
 
-def stop_capture():
-    # Implement stopping logic here
-    pass
+        self.stop_button = tk.Button(self, text="Stop Capture", command=self.stop_capture)
+        self.stop_button.grid(row=0, column=1, padx=10, pady=10)
+        self.tree = ttk.Treeview(self, columns = ('protocol_type', 'src_bytes', 'count', 'same_srv_rate', 'dst_host_diff_srv_rate', 'specific_prediction', 'broader_category'), show='headings')
+        self.tree.grid(row=1, column=0, columnspan=2, sticky='nsew')
+        for col in self.tree['columns']:
+            self.tree.heading(col, text=col)
 
-# A mapping from protocol numbers to names
-protocol_names = {0: 'icmp', 1: 'tcp', 2: 'udp'}
-
-def update_treeview():
-    # Try to get packet info from the queue without blocking
-    try:
-        packet_info = packet_info_queue.get_nowait()
-    except queue.Empty:
-        pass  # If the queue is empty, just ignore
-    else:
-        # Process the packet info and extract values
-        data = packet_info.split(', ')
-        values = []
-        for item in data:
-            # ... your existing processing logic ...
-
-        # Insert the processed values into the Treeview
-             treeview.insert('', 'end', values=values)
-
-        # Keep the Treeview to only the last 25 entries
-        while len(treeview.get_children()) > 25:
-            treeview.delete(treeview.get_children()[0])
-
-    # Schedule the next update call to this function after 100ms
-    root.after(100, update_treeview)
-
-# Set up the main application window
-root = tk.Tk()
-root.title("Network Traffic Analysis")
-
-# Add buttons
-start_button = ttk.Button(root, text="Start Capture", command=start_capture)
-start_button.pack(side='top', padx=5, pady=5)
-
-stop_button = ttk.Button(root, text="Stop Capture", command=stop_capture)
-stop_button.pack(side='top', padx=5, pady=5)
-
-# Set up the Treeview
-columns = ('protocol_type', 'src_bytes', 'count', 'same_srv_rate', 'dst_host_diff_srv_rate', 'specific_prediction', 'broader_category')
-treeview = ttk.Treeview(root, columns=columns, show='headings')
-for col in columns:
-    treeview.heading(col, text=col.replace('_', ' ').title())
-    treeview.column(col, width=100, anchor='center')
-treeview.pack(fill='both', expand=True)
+        self.analysis_system = NetworkTrafficAnalysis(model_path, attack_types,label_mapping)
+        self.ui_update_thread = Thread(target=self.update_ui_from_queue, daemon=True)
+        self.ui_update_thread.start()
 
 
+def start_capture(self):
+        # Start the capture in a separate thread to avoid blocking the GUI
+        if not self.capture_thread or not self.capture_thread.is_alive():
+            self.capture_thread = Thread(target=self.analysis_system.start_capture, daemon=True)
+            self.capture_thread.start()
+            self.after(100, self.update_ui_from_queue) 
 
-# Start the GUI loop
-root.mainloop()
+
+def stop_capture(self):
+        if self.capture_thread and self.capture_thread.is_alive():
+            self.capture_thread.join()
+
+def update_ui_from_queue(self):
+        try:
+            # Try to get packet info from the queue without blocking
+            packet_info = packet_info_queue.get_nowait()
+            self.display_packet_info(packet_info)
+        except queue.Empty:
+            pass  # If the queue is empty, do nothing
+        finally:
+            # Schedule the next update after 100ms
+            self.after(100, self.update_ui_from_queue)
+
+def display_packet_info(self, packet_info):
+        self.tree.insert('', tk.END, values=packet_info.split('\t'))
+        # Auto-scroll to the bottom
+        self.tree.yview_moveto(1)
+
+
+if __name__ == "__main__":
+    app = NetworkTrafficApp()
+    app.mainloop()

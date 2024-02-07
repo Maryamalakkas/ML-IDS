@@ -27,7 +27,7 @@ class NetworkTrafficApp(tk.Tk):
         self.tree.grid(row=1, column=0, columnspan=2, sticky='nsew')
         for col in self.tree['columns']:
             self.tree.heading(col, text=col)
-
+# note
         # Figure for the matplotlib graph
         self.figure = plt.Figure(figsize=(6,5), dpi=100)
         self.ax = self.figure.add_subplot(111)
