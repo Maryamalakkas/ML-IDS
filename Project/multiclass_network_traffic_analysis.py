@@ -101,17 +101,16 @@ class NetworkTrafficAnalysis:
             f"'same_srv_rate'= {stats['dst_host_same_srv_rate']}, "
             f"'dst_host_diff_srv_rate'= {dst_host_diff_srv_rate}, "
             f"Specific Prediction: {specific_category}, "
-            f"Broader Category: {broader_category}"
-        )
+            f"Broader Category: {broader_category}")
             # print(output)
             packet_info_queue.put(output)
 
+
     def start_capture(self):
-        sniff(prn=self.process_packet, store=False)
+        sniff(iface="en0", prn=self.process_packet, store=False)
+
     # stop the capture
-    def stop_capture(self):
         
-        pass
  
 
 if __name__ == "__main__":
@@ -165,7 +164,5 @@ if __name__ == "__main__":
         21: 'warezclient',
         22: 'warezmaster'
     }
-   
-    
     analysis_system = NetworkTrafficAnalysis(model_path, attack_types,label_mapping)
     analysis_system.start_capture()
