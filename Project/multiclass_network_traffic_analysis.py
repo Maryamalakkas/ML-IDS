@@ -103,11 +103,15 @@ class NetworkTrafficAnalysis:
             f"Specific Prediction: {specific_category}, "
             f"Broader Category: {broader_category}"
         )
-            print(output)
+            # print(output)
             packet_info_queue.put(output)
 
     def start_capture(self):
         sniff(prn=self.process_packet, store=False)
+    # stop the capture
+    def stop_capture(self):
+        
+        pass
  
 
 if __name__ == "__main__":
