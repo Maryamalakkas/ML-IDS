@@ -115,18 +115,19 @@ class NetworkTrafficApp(tk.Tk):
         self.ui_update_thread.start()
 
         # Set up the figure
-        self.fig = Figure(figsize=(5, 6), dpi=100)
-        self.ax_pie = self.fig.add_subplot(121)
-        self.ax_bar = self.fig.add_subplot(122)
+        self.fig = Figure(figsize=(6, 6), dpi=100)
+        self.ax_pie = self.fig.add_subplot(111)
+        
         
         # Embed the figure in the Tkinter window
         self.canvas = FigureCanvasTkAgg(self.fig, master=self)  # A tk.DrawingArea.
         self.canvas.draw()
-        self.canvas.get_tk_widget().grid(row=2, column=0, columnspan=2)
+        self.canvas.get_tk_widget().grid(row=2, column=0, columnspan=2, sticky='nsew')
         
         # Initialize the data for the graph
         self.categories = ['Normal', 'DoS', 'U2R', 'R2L', 'Probe']
         self.data = [0, 0, 0, 0, 0]  # Initialize with zeros or appropriate data
+        self.category_counts = {category: 0 for category in self.categories}
         
         # Start the periodic update
         self.update_graph()
@@ -159,29 +160,32 @@ class NetworkTrafficApp(tk.Tk):
             # Create a new tuple with the protocol name instead of the number
             updated_packet_info = (protocol_name,) + packet_info[1:]
             self.tree.insert('', tk.END, values=updated_packet_info)
+            category = packet_info[-1]  # Assuming the last item is the broader category
+            if category in self.category_counts:
+                self.category_counts[category] += 1
             self.tree.yview_moveto(1)
     
     def update_graph(self):
-        # This method will update the graph with new data
-        # For the example, we're just using random data
-        self.data = np.random.randint(0, 10, size=5)
-        
-        # Clear the previous pie
-        self.ax_pie.clear()
-        self.ax_bar.clear()
-        
-        # Draw the new pie chart
-        self.ax_pie.pie(self.data, labels=self.categories, autopct='%1.1f%%', startangle=140)
-        self.ax_pie.axis('equal')  # Equal aspect ratio ensures the pie chart is circular.
-        
-        # Draw the new bar chart
-        self.ax_bar.bar(self.categories, self.data, color=plt.cm.Set1(np.arange(len(self.data))/float(len(self.data))))
-        
-        # Refresh the canvas
-        self.canvas.draw()
+    # Ensure data is free of NaNs and safely convert to integers
+        self.data = [int(self.category_counts.get(category, 0)) for category in self.categories]
 
-        # Schedule the next update
-        self.after(1000, self.update_graph)  # Update every second (1000 ms)
+    # Clear the previous pie chart
+        self.ax_pie.clear()
+
+    # Check if we have non-zero data to plot
+        if any(self.data):
+        # Draw the new pie chart with the actual data
+            self.ax_pie.pie(self.data, labels=self.categories, autopct='%1.1f%%', startangle=140)
+            self.ax_pie.axis('equal')  # Equal aspect ratio ensures the pie chart is circular.
+        else:
+        # If all data is zero, we output 'No Data' in the center of the pie chart area
+            self.ax_pie.text(0.5, 0.5, 'No Data', horizontalalignment='center', verticalalignment='center', transform=self.ax_pie.transAxes)
+
+    # Refresh the canvas
+            self.canvas.draw()
+
+    # Schedule the next update
+            self.after(1000, self.update_graph) 
 
     
 
