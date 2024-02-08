@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import numpy as np
+import math
 
 # Initialize logging
 logging.basicConfig(level=logging.DEBUG)
@@ -96,9 +97,13 @@ class NetworkTrafficApp(tk.Tk):
         self.start_button.pack(side='top', padx=5, pady=5)
         self.stop_button = tk.Button(button_frame, text="Stop Capture", command=self.stop_capture)
         self.stop_button.pack(side='top', padx=5, pady=5)
+        self.pause_button = tk.Button(button_frame, text="Pause Capture", command=self.pause_capture)
+        self.pause_button.pack(side='top', padx=5, pady=5)
+        self.resume_button = tk.Button(button_frame, text="Resume Capture", command=self.resume_capture)
+        self.resume_button.pack(side='top', padx=5, pady=5)
 
 
-        self.tree = ttk.Treeview(self, columns=('protocol_type', 'src_bytes', 'count', 'same_srv_rate', 'dst_host_diff_srv_rate', 'specific_prediction', 'broader_category'), show='headings')
+        self.tree = ttk.Treeview(self, columns=('src_ip', 'dst_ip','protocol_type', 'src_bytes', 'count', 'same_srv_rate', 'dst_host_diff_srv_rate', 'specific_prediction', 'broader_category'), show='headings')
         self.tree.grid(row=1, column=0, columnspan=2, sticky='nsew')
         # Configure the grid to allow the Treeview to expand
         self.grid_rowconfigure(1, weight=1)
@@ -113,6 +118,7 @@ class NetworkTrafficApp(tk.Tk):
         self.analysis_system = NetworkTrafficAnalysis(model_path, attack_types, label_mapping)
         self.ui_update_thread = Thread(target=self.update_ui_from_queue, daemon=True)
         self.ui_update_thread.start()
+      
 
         # Set up the figure
         self.fig = Figure(figsize=(6, 6), dpi=100)
@@ -140,9 +146,16 @@ class NetworkTrafficApp(tk.Tk):
             self.capture_thread.start()
             self.after(100, self.update_ui_from_queue)
 
+    def pause_capture(self):
+        self.analysis_system.pause_capture()
+
+    def resume_capture(self):
+        self.analysis_system.resume_capture()
+
+    # Modify stop_capture as well if needed
     def stop_capture(self):
-        if self.capture_thread and self.capture_thread.is_alive():
-            self.capture_thread.join()
+        # Signal the capture thread to stop without joining
+        self.analysis_system.stop_capture()
 
     def update_ui_from_queue(self):
         try:
@@ -155,37 +168,48 @@ class NetworkTrafficApp(tk.Tk):
 
     
     def display_packet_info(self, packet_info):
-            # Convert the protocol number to a name using the protocol_names mapping
-            protocol_name = protocol_names.get(packet_info[0], 'Unknown')
-            # Create a new tuple with the protocol name instead of the number
-            updated_packet_info = (protocol_name,) + packet_info[1:]
-            self.tree.insert('', tk.END, values=updated_packet_info)
-            category = packet_info[-1]  # Assuming the last item is the broader category
-            if category in self.category_counts:
-                self.category_counts[category] += 1
-            self.tree.yview_moveto(1)
-    
+    # Extract the source and destination IP addresses
+        src_ip, dst_ip = packet_info[0], packet_info[1]
+
+    # Convert the protocol number to a name using the protocol_names mapping
+        protocol_name = protocol_names.get(packet_info[2], 'Unknown')
+
+    # Create a new tuple with the protocol name instead of the number, and including the IPs
+        updated_packet_info = (src_ip, dst_ip, protocol_name) + packet_info[3:]
+        self.tree.insert('', tk.END, values=updated_packet_info)
+        category = packet_info[-1]  # Assuming the last item is the broader category
+        if category in self.category_counts:
+            self.category_counts[category] += 1
+        self.tree.yview_moveto(1)
+        
     def update_graph(self):
     # Ensure data is free of NaNs and safely convert to integers
         self.data = [int(self.category_counts.get(category, 0)) for category in self.categories]
+
+    # Filter categories and data for non-zero values
+        non_zero_data = [(data, category) for data, category in zip(self.data, self.categories) if data > 0]
+
+    # Unzip the data and categories
+        filtered_data, filtered_categories = zip(*non_zero_data) if non_zero_data else ([], [])
 
     # Clear the previous pie chart
         self.ax_pie.clear()
 
     # Check if we have non-zero data to plot
-        if any(self.data):
+        if filtered_data:
         # Draw the new pie chart with the actual data
-            self.ax_pie.pie(self.data, labels=self.categories, autopct='%1.1f%%', startangle=140)
+            self.ax_pie.pie(filtered_data, labels=filtered_categories, autopct='%1.1f%%', startangle=140)
             self.ax_pie.axis('equal')  # Equal aspect ratio ensures the pie chart is circular.
         else:
         # If all data is zero, we output 'No Data' in the center of the pie chart area
             self.ax_pie.text(0.5, 0.5, 'No Data', horizontalalignment='center', verticalalignment='center', transform=self.ax_pie.transAxes)
 
     # Refresh the canvas
-            self.canvas.draw()
+        self.canvas.draw()
 
     # Schedule the next update
-            self.after(1000, self.update_graph) 
+        self.after(1000, self.update_graph)
+
 
     
 

@@ -99,3 +99,27 @@ analysis_system = NetworkTrafficAnalysis('Project/multiclass_decision_tree_model
 
 # Start the GUI loop
 root.mainloop()
+
+
+
+# Set up the bar chart figure
+        self.fig, self.ax_bar = plt.subplots(figsize=(6, 6), dpi=100)
+
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self)  # A tk.DrawingArea.
+        self.canvas.get_tk_widget().grid(row=1, column=0, sticky='nsew')
+
+        # Initialize the data for the graph
+        self.categories = ['Normal', 'DoS', 'U2R', 'R2L', 'Probe']
+        self.data = [0, 0, 0, 0, 0]  # Initialize with zeros or appropriate data
+        self.category_counts = {category: 0 for category in self.categories}
+
+        # Configure grid layout for resizing
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=1)
+
+        # Start the periodic update of the graph
+        self.after(1000, self.update_graph)
+        
+        # Start UI update thread
+        self.ui_update_thread = Thread(target=self.update_ui_from_queue, daemon=True)
+        self.ui_update_thread.start()

@@ -6,7 +6,7 @@ from queue import Queue
 from collections import defaultdict, Counter
 from scapy.all import IP, TCP, UDP, sniff
 import time
-
+import threading
 
 # Initialize a queue for thread-safe communication
 packet_info_queue = Queue()
@@ -76,14 +76,22 @@ class NetworkTrafficAnalysis:
         self.attack_types = attack_types
         self.label_mapping = label_mapping
         self.tracker = ConnectionTracker()
+        self.pause_event = threading.Event()
+        self.stop_event = threading.Event()
+
 
 
     def process_packet(self, packet):
+        if self.pause_event.is_set():
+            return
         if IP not in packet:
             return
 
         protocol_type = encode_protocol(packet)
         self.tracker.update_connection(packet)
+
+        src_ip = packet[IP].src  # Capture source IP address
+        dst_ip = packet[IP].dst  # Capture destination IP address
 
         for key, stats in self.tracker.connections.items():
             # Assuming 'count' and 'dst_host_diff_srv_rate' are calculated within update_connection
@@ -95,6 +103,8 @@ class NetworkTrafficAnalysis:
             specific_category = self.label_mapping[numerical_prediction]  # Translate to string label  # Translate to string label
             broader_category = self.attack_types.get(specific_category, "Unknown")
             output = (
+    src_ip,  # Include source IP address
+    dst_ip,  # Include destination IP address
     protocol_type,
     stats['src_bytes'],
     count,
@@ -103,11 +113,22 @@ class NetworkTrafficAnalysis:
     specific_category,
     broader_category)
             packet_info_queue.put(output)
+            print(output)
 
     def start_capture(self):
-        sniff(iface="en0", prn=self.process_packet, store=False)
+        self.stop_event.clear()  # Ensure stop_event is not set when starting
+        self.pause_event.clear()  # Ensure pause_event is not set when starting
+        sniff(iface="en0", prn=self.process_packet, store=False, stop_filter=lambda x: self.stop_event.is_set())
+    def stop_capture(self):
+        self.stop_event.set()  # Signal to stop packet capturing
+    def pause_capture(self):
+        self.pause_event.set()  # Signal to pause packet capturing
+    def resume_capture(self):
+        self.pause_event.clear()  # Clear the pause signal to resume packet capturing
 
-    # stop the capture
+    
+
+    
         
  
 
