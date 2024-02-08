@@ -95,16 +95,14 @@ class NetworkTrafficAnalysis:
             specific_category = self.label_mapping[numerical_prediction]  # Translate to string label  # Translate to string label
             broader_category = self.attack_types.get(specific_category, "Unknown")
             output = (
-            f"'protocol_type'= {protocol_type}, "
-            f"'src_bytes' = {stats['src_bytes']}, "
-            f"'count'= {count}, "
-            f"'same_srv_rate'= {stats['dst_host_same_srv_rate']}, "
-            f"'dst_host_diff_srv_rate'= {dst_host_diff_srv_rate}, "
-            f"Specific Prediction: {specific_category}, "
-            f"Broader Category: {broader_category}")
-            # print(output)
+    protocol_type,
+    stats['src_bytes'],
+    count,
+    stats['dst_host_same_srv_rate'],
+    dst_host_diff_srv_rate,
+    specific_category,
+    broader_category)
             packet_info_queue.put(output)
-
 
     def start_capture(self):
         sniff(iface="en0", prn=self.process_packet, store=False)

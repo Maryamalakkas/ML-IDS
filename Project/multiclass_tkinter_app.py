@@ -13,6 +13,11 @@ from threading import Thread
 import queue
 import logging
 
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+import numpy as np
+
 # Initialize logging
 logging.basicConfig(level=logging.DEBUG)
 model_path = 'Project/multiclass_decision_tree_model.joblib'
@@ -65,58 +70,120 @@ label_mapping = {
         21: 'warezclient',
         22: 'warezmaster'
     }
+protocol_names = {0: 'ICMP', 1: 'TCP', 2: 'UDP'}
 
 
 class NetworkTrafficApp(tk.Tk):
-     def __init__(self):
+    def __init__(self):
         super().__init__()
         self.title("Network Traffic Analysis")
-        self.geometry("1024x768")
+
+        # Get the screen dimension
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+
+        # Set the window size to the screen dimension
+        self.geometry(f'{screen_width}x{screen_height}+0+0')
         self.capture_thread = None
 
-        self.start_button = tk.Button(self, text="Start Capture", command=self.start_capture)
-        self.start_button.grid(row=0, column=0, padx=10, pady=10)
+        # Create a frame for the buttons
+        button_frame = tk.Frame(self)
+        button_frame.grid(row=0, column=0, sticky='ew', padx=10, pady=10)
+        # This will make the frame expand to fill the width of the window
+        self.grid_columnconfigure(0, weight=1)
+        # Now use the pack geometry manager to center the buttons within the frame
+        self.start_button = tk.Button(button_frame, text="Start Capture", command=self.start_capture)
+        self.start_button.pack(side='top', padx=5, pady=5)
+        self.stop_button = tk.Button(button_frame, text="Stop Capture", command=self.stop_capture)
+        self.stop_button.pack(side='top', padx=5, pady=5)
 
-        self.stop_button = tk.Button(self, text="Stop Capture", command=self.stop_capture)
-        self.stop_button.grid(row=0, column=1, padx=10, pady=10)
-        self.tree = ttk.Treeview(self, columns = ('protocol_type', 'src_bytes', 'count', 'same_srv_rate', 'dst_host_diff_srv_rate', 'specific_prediction', 'broader_category'), show='headings')
+
+        self.tree = ttk.Treeview(self, columns=('protocol_type', 'src_bytes', 'count', 'same_srv_rate', 'dst_host_diff_srv_rate', 'specific_prediction', 'broader_category'), show='headings')
         self.tree.grid(row=1, column=0, columnspan=2, sticky='nsew')
+        # Configure the grid to allow the Treeview to expand
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1)
         for col in self.tree['columns']:
             self.tree.heading(col, text=col)
+            self.tree.column(col, anchor='center') 
+        # Add this line to allow the columns to expand
+            self.tree.column(col, stretch=True)
 
-        self.analysis_system = NetworkTrafficAnalysis(model_path, attack_types,label_mapping)
+        # Initialize the analysis system and UI update thread
+        self.analysis_system = NetworkTrafficAnalysis(model_path, attack_types, label_mapping)
         self.ui_update_thread = Thread(target=self.update_ui_from_queue, daemon=True)
         self.ui_update_thread.start()
 
+        # Set up the figure
+        self.fig = Figure(figsize=(5, 6), dpi=100)
+        self.ax_pie = self.fig.add_subplot(121)
+        self.ax_bar = self.fig.add_subplot(122)
+        
+        # Embed the figure in the Tkinter window
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self)  # A tk.DrawingArea.
+        self.canvas.draw()
+        self.canvas.get_tk_widget().grid(row=2, column=0, columnspan=2)
+        
+        # Initialize the data for the graph
+        self.categories = ['Normal', 'DoS', 'U2R', 'R2L', 'Probe']
+        self.data = [0, 0, 0, 0, 0]  # Initialize with zeros or appropriate data
+        
+        # Start the periodic update
+        self.update_graph()
+        
+        
 
-def start_capture(self):
-        # Start the capture in a separate thread to avoid blocking the GUI
+    def start_capture(self):
         if not self.capture_thread or not self.capture_thread.is_alive():
             self.capture_thread = Thread(target=self.analysis_system.start_capture, daemon=True)
             self.capture_thread.start()
-            self.after(100, self.update_ui_from_queue) 
+            self.after(100, self.update_ui_from_queue)
 
-
-def stop_capture(self):
+    def stop_capture(self):
         if self.capture_thread and self.capture_thread.is_alive():
             self.capture_thread.join()
 
-def update_ui_from_queue(self):
+    def update_ui_from_queue(self):
         try:
-            # Try to get packet info from the queue without blocking
             packet_info = packet_info_queue.get_nowait()
             self.display_packet_info(packet_info)
         except queue.Empty:
-            pass  # If the queue is empty, do nothing
+            pass
         finally:
-            # Schedule the next update after 100ms
             self.after(100, self.update_ui_from_queue)
 
-def display_packet_info(self, packet_info):
-        self.tree.insert('', tk.END, values=packet_info.split('\t'))
-        # Auto-scroll to the bottom
-        self.tree.yview_moveto(1)
+    
+    def display_packet_info(self, packet_info):
+            # Convert the protocol number to a name using the protocol_names mapping
+            protocol_name = protocol_names.get(packet_info[0], 'Unknown')
+            # Create a new tuple with the protocol name instead of the number
+            updated_packet_info = (protocol_name,) + packet_info[1:]
+            self.tree.insert('', tk.END, values=updated_packet_info)
+            self.tree.yview_moveto(1)
+    
+    def update_graph(self):
+        # This method will update the graph with new data
+        # For the example, we're just using random data
+        self.data = np.random.randint(0, 10, size=5)
+        
+        # Clear the previous pie
+        self.ax_pie.clear()
+        self.ax_bar.clear()
+        
+        # Draw the new pie chart
+        self.ax_pie.pie(self.data, labels=self.categories, autopct='%1.1f%%', startangle=140)
+        self.ax_pie.axis('equal')  # Equal aspect ratio ensures the pie chart is circular.
+        
+        # Draw the new bar chart
+        self.ax_bar.bar(self.categories, self.data, color=plt.cm.Set1(np.arange(len(self.data))/float(len(self.data))))
+        
+        # Refresh the canvas
+        self.canvas.draw()
 
+        # Schedule the next update
+        self.after(1000, self.update_graph)  # Update every second (1000 ms)
+
+    
 
 if __name__ == "__main__":
     app = NetworkTrafficApp()
