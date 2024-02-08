@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import ttk
 from tkinter import scrolledtext
 from threading import Thread
 import queue
@@ -8,16 +9,9 @@ from matplotlib.figure import Figure
 import numpy as np
 from multiclass_network_traffic_analysis import NetworkTrafficAnalysis, packet_info_queue
 import tkinter as tk
-from tkinter import ttk
-from threading import Thread
-import queue
-import logging
 
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.figure import Figure
-import numpy as np
-import math
+
+import logging
 
 # Initialize logging
 logging.basicConfig(level=logging.DEBUG)
@@ -86,6 +80,7 @@ class NetworkTrafficApp(tk.Tk):
         # Set the window size to the screen dimension
         self.geometry(f'{screen_width}x{screen_height}+0+0')
         self.capture_thread = None
+        
 
         # Create a frame for the buttons
         button_frame = tk.Frame(self)
@@ -103,16 +98,21 @@ class NetworkTrafficApp(tk.Tk):
         self.resume_button.pack(side='top', padx=5, pady=5)
 
 
-        self.tree = ttk.Treeview(self, columns=('src_ip', 'dst_ip','protocol_type', 'src_bytes', 'count', 'same_srv_rate', 'dst_host_diff_srv_rate', 'specific_prediction', 'broader_category'), show='headings')
-        self.tree.grid(row=1, column=0, columnspan=2, sticky='nsew')
+        # Initialize the Treeview
+        self.tree = ttk.Treeview(self, columns=('src_ip', 'dst_ip', 'protocol_type', 'src_bytes', 'count', 'same_srv_rate', 'dst_host_diff_srv_rate', 'specific_prediction', 'broader_category'), show='headings')
+        self.tree.grid(row=1, column=0, sticky='nsew')
         # Configure the grid to allow the Treeview to expand
         self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(0, weight=1)
         for col in self.tree['columns']:
             self.tree.heading(col, text=col)
-            self.tree.column(col, anchor='center') 
-        # Add this line to allow the columns to expand
+            self.tree.column(col, anchor='center')
             self.tree.column(col, stretch=True)
+
+        # Create and set up the scrollbar for the Treeview
+        self.tree_scroll = ttk.Scrollbar(self, orient="vertical", command=self.tree.yview)
+        self.tree_scroll.grid(row=1, column=1, sticky='ns')
+        self.tree.configure(yscrollcommand=self.tree_scroll.set)
 
         # Initialize the analysis system and UI update thread
         self.analysis_system = NetworkTrafficAnalysis(model_path, attack_types, label_mapping)
