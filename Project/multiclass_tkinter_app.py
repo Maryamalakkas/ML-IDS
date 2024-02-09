@@ -78,24 +78,25 @@ class NetworkTrafficApp(tk.Tk):
         screen_height = self.winfo_screenheight()
 
         # Set the window size to the screen dimension
-        self.geometry(f'{screen_width}x{screen_height}+0+0')
+        # self.geometry(f'{screen_width}x{screen_height}+0+0')
         self.capture_thread = None
         
 
         # Create a frame for the buttons
         button_frame = tk.Frame(self)
-        button_frame.grid(row=0, column=0, sticky='ew', padx=10, pady=10)
+        button_frame.grid(row=0, column=0, sticky='ew')
         # This will make the frame expand to fill the width of the window
         self.grid_columnconfigure(0, weight=1)
-        # Now use the pack geometry manager to center the buttons within the frame
+
+        # Buttons are set to expand and fill space
         self.start_button = tk.Button(button_frame, text="Start Capture", command=self.start_capture)
-        self.start_button.pack(side='top', padx=5, pady=5)
+        self.start_button.pack(side='left', expand=True, fill='x')
         self.stop_button = tk.Button(button_frame, text="Stop Capture", command=self.stop_capture)
-        self.stop_button.pack(side='top', padx=5, pady=5)
+        self.stop_button.pack(side='left', expand=True, fill='x')
         self.pause_button = tk.Button(button_frame, text="Pause Capture", command=self.pause_capture)
-        self.pause_button.pack(side='top', padx=5, pady=5)
+        self.pause_button.pack(side='left', expand=True, fill='x')
         self.resume_button = tk.Button(button_frame, text="Resume Capture", command=self.resume_capture)
-        self.resume_button.pack(side='top', padx=5, pady=5)
+        self.resume_button.pack(side='left', expand=True, fill='x')
 
 
         # Initialize the Treeview
@@ -113,6 +114,7 @@ class NetworkTrafficApp(tk.Tk):
         self.tree_scroll = ttk.Scrollbar(self, orient="vertical", command=self.tree.yview)
         self.tree_scroll.grid(row=1, column=1, sticky='ns')
         self.tree.configure(yscrollcommand=self.tree_scroll.set)
+        self.grid_rowconfigure(1, weight=1)  # Makes the Treeview expandable
 
         # Initialize the analysis system and UI update thread
         self.analysis_system = NetworkTrafficAnalysis(model_path, attack_types, label_mapping)
