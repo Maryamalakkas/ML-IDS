@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import numpy as np
-from multiclass_network_traffic_analysis import NetworkTrafficAnalysis, packet_info_queue
+from multiclass_network_traffic_analysis import NetworkTrafficAnalysis, packet_info_queue, ConnectionTracker, encode_protocol,  protocol_names, label_mapping, attack_types
 import tkinter as tk
 
 
@@ -80,8 +80,9 @@ class NetworkTrafficApp(tk.Tk):
         # Set the window size to the screen dimension
         # self.geometry(f'{screen_width}x{screen_height}+0+0')
         self.capture_thread = None
-        
+        # self.capture_thread.join()
 
+        
         # Create a frame for the buttons
         button_frame = tk.Frame(self)
         button_frame.grid(row=0, column=0, sticky='ew')
@@ -93,12 +94,7 @@ class NetworkTrafficApp(tk.Tk):
         self.start_button.pack(side='left', expand=True, fill='x')
         self.stop_button = tk.Button(button_frame, text="Stop Capture", command=self.stop_capture)
         self.stop_button.pack(side='left', expand=True, fill='x')
-        self.pause_button = tk.Button(button_frame, text="Pause Capture", command=self.pause_capture)
-        self.pause_button.pack(side='left', expand=True, fill='x')
-        self.resume_button = tk.Button(button_frame, text="Resume Capture", command=self.resume_capture)
-        self.resume_button.pack(side='left', expand=True, fill='x')
-
-
+    
         # Initialize the Treeview
         self.tree = ttk.Treeview(self, columns=('src_ip', 'dst_ip', 'protocol_type', 'src_bytes', 'count', 'same_srv_rate', 'dst_host_diff_srv_rate', 'specific_prediction', 'broader_category'), show='headings')
         self.tree.grid(row=1, column=0, sticky='nsew')
@@ -139,25 +135,26 @@ class NetworkTrafficApp(tk.Tk):
         
         # Start the periodic update
         self.update_graph()
-        
-        
 
+
+ 
     def start_capture(self):
-        if not self.capture_thread or not self.capture_thread.is_alive():
+        if self.capture_thread is None or not self.capture_thread.is_alive():
+            # Initialize and start the capture thread only if it hasn't been started or if it's not alive
             self.capture_thread = Thread(target=self.analysis_system.start_capture, daemon=True)
             self.capture_thread.start()
-            self.after(100, self.update_ui_from_queue)
+        else:
+            print("Capture is already running.")
 
-    def pause_capture(self):
-        self.analysis_system.pause_capture()
 
-    def resume_capture(self):
-        self.analysis_system.resume_capture()
-
-    # Modify stop_capture as well if needed
     def stop_capture(self):
-        # Signal the capture thread to stop without joining
-        self.analysis_system.stop_capture()
+            self.capture_thread= Thread(target=self.analysis_system.stop_capture_filter, daemon=True)
+            self.capture_thread.start()
+    
+
+
+
+
 
     def update_ui_from_queue(self):
         try:
@@ -169,6 +166,9 @@ class NetworkTrafficApp(tk.Tk):
             self.after(100, self.update_ui_from_queue)
 
     
+
+
+
     def display_packet_info(self, packet_info):
     # Extract the source and destination IP addresses
         src_ip, dst_ip = packet_info[0], packet_info[1]
@@ -184,6 +184,9 @@ class NetworkTrafficApp(tk.Tk):
             self.category_counts[category] += 1
         self.tree.yview_moveto(1)
         
+
+
+
     def update_graph(self):
     # Ensure data is free of NaNs and safely convert to integers
         self.data = [int(self.category_counts.get(category, 0)) for category in self.categories]
@@ -213,8 +216,9 @@ class NetworkTrafficApp(tk.Tk):
         self.after(1000, self.update_graph)
 
 
-    
-
 if __name__ == "__main__":
     app = NetworkTrafficApp()
     app.mainloop()
+    
+
+

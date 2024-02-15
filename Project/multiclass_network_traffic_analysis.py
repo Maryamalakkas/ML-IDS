@@ -3,10 +3,22 @@ import numpy as np
 import joblib
 from collections import defaultdict, Counter
 from queue import Queue
-from collections import defaultdict, Counter
-from scapy.all import IP, TCP, UDP, sniff
 import time
 import threading
+import tkinter as tk
+from tkinter import ttk
+from tkinter import scrolledtext
+from threading import Thread
+import queue
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+import numpy as np
+# from multiclass_network_traffic_analysis import NetworkTrafficAnalysis, packet_info_queue, ConnectionTracker, encode_protocol,  protocol_names, label_mapping, attack_types
+import tkinter as tk
+
+
+import logging
 
 # Initialize a queue for thread-safe communication
 packet_info_queue = Queue()
@@ -78,9 +90,8 @@ class NetworkTrafficAnalysis:
         self.tracker = ConnectionTracker()
         self.pause_event = threading.Event()
         self.stop_event = threading.Event()
-
-
-
+        self.capture_thread = None
+ 
     def process_packet(self, packet):
         if self.pause_event.is_set():
             return
@@ -115,23 +126,14 @@ class NetworkTrafficAnalysis:
             packet_info_queue.put(output)
             print(output)
 
+    
+    def stop_capture_filter(self, packet):
+        return self.stop_event.is_set()  # Corrected logic to actually stop the capture based on the event
+ 
     def start_capture(self):
         self.stop_event.clear()  # Ensure stop_event is not set when starting
-        self.pause_event.clear()  # Ensure pause_event is not set when starting
-        sniff(iface="en0", prn=self.process_packet, store=False, stop_filter=lambda x: self.stop_event.is_set())
-    def stop_capture(self):
-        self.stop_event.set()  # Signal to stop packet capturing
-    def pause_capture(self):
-        self.pause_event.set()  # Signal to pause packet capturing
-    def resume_capture(self):
-        self.pause_event.clear()  # Clear the pause signal to resume packet capturing
-
-    
-
-    
-        
+        sniff(prn=self.process_packet, store=False, stop_filter=self.stop_capture_filter)
  
-
 if __name__ == "__main__":
     model_path = 'Project/multiclass_decision_tree_model.joblib'
     attack_types = {
@@ -183,5 +185,12 @@ if __name__ == "__main__":
         21: 'warezclient',
         22: 'warezmaster'
     }
-    analysis_system = NetworkTrafficAnalysis(model_path, attack_types,label_mapping)
-    analysis_system.start_capture()
+    analysis_system = NetworkTrafficAnalysis(model_path, attack_types, label_mapping)
+    # Use threading properly
+    # capture_thread = threading.Thread(target=analysis_system.start_capture, daemon=True)
+    # capture_thread.start()
+   
+
+  
+
+
