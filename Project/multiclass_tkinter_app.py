@@ -165,9 +165,6 @@ class NetworkTrafficApp(tk.Tk):
         finally:
             self.after(100, self.update_ui_from_queue)
 
-    
-
-
 
     def display_packet_info(self, packet_info):
     # Extract the source and destination IP addresses
@@ -214,7 +211,6 @@ class NetworkTrafficApp(tk.Tk):
 
     # Schedule the next update
         self.after(1000, self.update_graph)
-
 
 if __name__ == "__main__":
     app = NetworkTrafficApp()
