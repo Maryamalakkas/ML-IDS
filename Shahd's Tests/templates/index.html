@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Network Traffic Analysis</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.23/css/jquery.dataTables.css">
+    <script type="text/javascript" src="https://cdn.datatables.net/1.10.23/js/jquery.dataTables.js"></script>
+    <script>
+        $(document).ready(function() {
+            var table = $('#resultsTable').DataTable({
+                "pageLength": 10
+            });
+    
+            var existingRows = new Set(); // Track identifiers of existing rows
+    
+            $("#startCapture").click(function() {
+                $.post("/start_capture", function(data) {
+                    alert(data.status);
+                });
+            });
+    
+            $("#stopCapture").click(function() {
+                $.post("/stop_capture", function(data) {
+                    alert(data.status);
+                });
+            });
+    
+            $("#clearTable").click(function() {
+                table.clear().draw(); // Clear the DataTable
+                existingRows.clear(); // Reset the set of existing row identifiers
+            });
+    
+            function updateResults() {
+                $.getJSON("/get_results", function(data) {
+                    data.forEach(function(item) {
+                        var rowId = item.src_ip + '-' + item.dst_ip; // Example unique identifier
+                        if (!existingRows.has(rowId)) {
+                            table.row.add([
+                                item.src_ip,
+                                item.dst_ip,
+                                item.protocol_type,
+                                item.src_bytes,
+                                item.count,
+                                item.dst_host_same_srv_rate,
+                                item.specific_category,
+                                item.broader_category
+                            ]).draw(false);
+                            existingRows.add(rowId);
+                        }
+                    });
+                });
+            }
+    
+            setInterval(updateResults, 5000); // Update results every 5 seconds
+        });
+    </script>       
+</head>
+<body>
+    <div class="container">
+        <h1>Network Traffic Analysis</h1>
+        <button id="startCapture" class="btn btn-success">Start Capture</button>
+        <button id="stopCapture" class="btn btn-danger">Stop Capture</button>
+        <button id="clearTable" class="btn btn-warning">Clear Table</button>
+        
+        <!-- Results Table Below -->
+        <h2>Results</h2>
+        <table class="table" id="resultsTable">
+            <thead>
+                <tr>
+                    <th>Source IP</th>
+                    <th>Destination IP</th>
+                    <th>Protocol</th>
+                    <th>Source Bytes</th>
+                    <th>Count</th>
+                    <th>Service Rate</th>
+                    <th>Attack Type</th>
+                    <th>Category</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Content will be filled by the updateResults JavaScript function -->
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
+
+
