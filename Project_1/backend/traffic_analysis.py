@@ -11,8 +11,6 @@ import matplotlib.pyplot as plt
 # from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import numpy as np
-# from multiclass_network_traffic_analysis import NetworkTrafficAnalysis, packet_info_queue, ConnectionTracker, encode_protocol,  protocol_names, label_mapping, attack_types
-
 
 import logging
 

@@ -2,6 +2,7 @@
     "python.analysis.extraPaths": [
         "./Project/multiclass_",
         "./Model",
+        
         "./Shahd's Tests/backend"
     ]
 }

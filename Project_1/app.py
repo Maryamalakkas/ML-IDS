@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 # Initialize the NetworkTrafficAnalysis system
 # Replace the model_path with the path to your trained model
-model_path = "/Users/shahadaleissa/ML-IDS/Shahd's Tests/models/multiclass_decision_tree_model.joblib"
+model_path = "/Users/maryam/ML-IDS/Project_1/models/multiclass_decision_tree_model.joblib"
 # Define your attack_types and label_mapping as in the original code
 attack_types = {
         'normal': 'Normal',
