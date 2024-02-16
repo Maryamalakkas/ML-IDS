@@ -111,11 +111,5 @@ def get_results():
             'broader_category': item[8]
         })
     return jsonify(results_list)
-@app.route('/chart')
-def chart():
-    return render_template('chart.html')
-
-
-
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
